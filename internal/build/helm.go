@@ -676,6 +676,9 @@ func (h *Helm) buildFromHelmRepository(ctx context.Context, obj *sourcev1beta2.H
 
 // oidcAuth generates registry credentials using fluxcd/pkg/auth (controller/workload identity).
 func oidcAuth(ctx context.Context, url, provider string) (authn.Authenticator, error) {
+	if provider == "" {
+		return authn.Anonymous, nil
+	}
 	u := strings.TrimPrefix(url, sourcev1beta2.OCIRepositoryPrefix)
 	if _, err := name.ParseReference(u); err != nil {
 		return nil, fmt.Errorf("failed to parse URL '%s': %w", u, err)
