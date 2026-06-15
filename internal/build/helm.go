@@ -296,6 +296,7 @@ func (h *Helm) renderRelease(ctx context.Context, hr helmv2.HelmRelease, values 
 	client.Timeout = install.GetTimeout(hr.GetTimeout()).Duration
 	client.DisableHooks = install.DisableHooks
 	client.DisableOpenAPIValidation = install.DisableOpenAPIValidation
+	client.SkipSchemaValidation = install.DisableSchemaValidation
 	client.Devel = true
 	client.EnableDNS = true
 
@@ -709,6 +710,8 @@ func oidcAuth(ctx context.Context, url, provider string) (authn.Authenticator, e
 		providerName = authazure.ProviderName
 	case sourcev1beta2.GoogleOCIProvider:
 		providerName = authgcp.ProviderName
+	case "":
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unsupported OCI provider %q", provider)
 	}
