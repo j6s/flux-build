@@ -824,7 +824,15 @@ func (h *Helm) buildFromGitRepository(ctx context.Context, obj *sourcev1beta2.He
 	}
 
 	// Use the local builder for building the chart from the cloned directory
-	dm := chart.NewDependencyManager()
+	dm := chart.NewDependencyManager(chart.WithDownloaderCallback(func(url string) (repository.Downloader, error) {
+		// Construct the Getter options from the HelmRepository data
+		clientOpts := []helmgetter.Option{
+			helmgetter.WithURL(url),
+			helmgetter.WithTimeout(1 * time.Minute),
+		}
+
+		return repository.NewChartRepository(url, os.TempDir(), h.opts.Getters, nil, clientOpts...)
+	}))
 	cb := chart.NewLocalBuilder(dm)
 
 	opts := chart.BuildOptions{
