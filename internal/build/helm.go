@@ -215,9 +215,9 @@ func (h *Helm) getRepository(repository *resource.Resource) (runtime.Object, err
 		})
 	case "GitRepository":
 		copy.SetGvk(resid.Gvk{
-			Group:   sourcev1beta2.GroupVersion.Group,
-			Version: sourcev1beta2.GroupVersion.Version,
-			Kind:    sourcev1beta2.GitRepositoryKind,
+			Group:   sourcev1.GroupVersion.Group,
+			Version: sourcev1.GroupVersion.Version,
+			Kind:    sourcev1.GitRepositoryKind,
 		})
 	default:
 		return nil, fmt.Errorf("unsupported source kind: %s", sourceKind)
@@ -254,7 +254,7 @@ func (h *Helm) buildChart(ctx context.Context, repository runtime.Object, releas
 	switch repository := repository.(type) {
 	case *sourcev1.HelmRepository:
 		return h.buildFromHelmRepository(ctx, chart, repository, b, db)
-	case *sourcev1beta2.GitRepository:
+	case *sourcev1.GitRepository:
 		return h.buildFromGitRepository(ctx, chart, repository, b, db)
 	}
 
@@ -723,7 +723,7 @@ func isSkippableCloudRegistryAuthErr(err error) bool {
 // buildFromGitRepository attempts to pull a Helm chart with the
 // specified data from the v1beta2.GitRepository and v1beta2.HelmChart
 // objects.
-func (h *Helm) buildFromGitRepository(ctx context.Context, obj *sourcev1beta2.HelmChart, repo *sourcev1beta2.GitRepository, b *chart.Build, db map[ref]*resource.Resource) error {
+func (h *Helm) buildFromGitRepository(ctx context.Context, obj *sourcev1.HelmChart, repo *sourcev1.GitRepository, b *chart.Build, db map[ref]*resource.Resource) error {
 
 	// Used to login with the repository declared provider
 	ctxTimeout, cancel := context.WithTimeout(ctx, 1*time.Minute)
@@ -843,7 +843,7 @@ func (h *Helm) buildFromGitRepository(ctx context.Context, obj *sourcev1beta2.He
 }
 
 // getGitRepositorySecret retrieves the secret referenced by the GitRepository for authentication
-func (h *Helm) getGitRepositorySecret(repository *sourcev1beta2.GitRepository, db map[ref]*resource.Resource) (*corev1.Secret, error) {
+func (h *Helm) getGitRepositorySecret(repository *sourcev1.GitRepository, db map[ref]*resource.Resource) (*corev1.Secret, error) {
 	if repository.Spec.SecretRef == nil {
 		return nil, nil
 	}
@@ -898,7 +898,7 @@ func (h *Helm) configureGitAuth(secret *corev1.Secret) (*http.BasicAuth, error) 
 }
 
 // cloneAndExtractChart clones the git repository and extracts the chart using go-git
-func (h *Helm) cloneAndExtractChart(ctx context.Context, repoURL string, gitRef *sourcev1beta2.GitRepositoryRef, chartPath, tempDir string, auth *http.BasicAuth) (string, error) {
+func (h *Helm) cloneAndExtractChart(ctx context.Context, repoURL string, gitRef *sourcev1.GitRepositoryRef, chartPath, tempDir string, auth *http.BasicAuth) (string, error) {
 	gitCloneDir := filepath.Join(tempDir, "repo")
 
 	h.Logger.V(1).Info("cloning git repository", "url", repoURL, "dir", gitCloneDir)
@@ -970,22 +970,8 @@ func (h *Helm) cloneAndExtractChart(ctx context.Context, repoURL string, gitRef 
 	return fullChartPath, nil
 }
 
-// makeLoginOption returns a registry login option for the given HelmRepository.
-// If the HelmRepository does not specify a secretRef, a nil login option is returned.
-func makeLoginOption(auth authn.Authenticator, keychain authn.Keychain, registryURL string) (helmreg.LoginOption, error) {
-	if auth != nil {
-		return registry.AuthAdaptHelper(auth)
-	}
-
-	if keychain != nil {
-		return registry.KeychainAdaptHelper(keychain)(registryURL)
-	}
-
-	return nil, nil
-}
-
 // makeVerifiers returns a list of verifiers for the given chart.
-/*func (h *Helm) makeVerifiers(ctx context.Context, obj *sourcev1beta2.HelmChart, auth authn.Authenticator, keychain authn.Keychain) ([]soci.Verifier, error) {
+/*func (h *Helm) makeVerifiers(ctx context.Context, obj *sourcev1.HelmChart, auth authn.Authenticator, keychain authn.Keychain) ([]soci.Verifier, error) {
 	var verifiers []soci.Verifier
 	verifyOpts := []remote.Option{}
 	if auth != nil {
